@@ -121,7 +121,7 @@ run_log_monitor() {
 			if echo "$line" | grep -iqE "accepted login|login succeeded|luci: accepted|cgi: accepted"; then
 				web_ip=$(echo "$line" | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | tail -n 1)
 				[ -z "$web_ip" ] && web_ip=$(echo "$line" | grep -oE '([0-9a-fA-F]{1,4}:){2,7}[0-9a-fA-F]{1,4}' | tail -n 1)
-				[ -n "$web_ip" ] && process_login_event "$web_ip" "$(echo "$line" | awk '{print $1,$2,$3}')" "web_success" "$req_path" "${ua:-Browser (LuCI)}"
+				[ -n "$web_ip" ] && process_login_event "$web_ip" "$(echo "$line" | awk '{print $1,$2,$3}')" "web_success" "$req_path" "${ua:-Web Browser}"
 			fi
 		fi
 
@@ -139,7 +139,7 @@ run_log_monitor() {
 			if echo "$line" | grep -iqE "failed login|authentication failure|luci: failed|login failed|cgi: failed"; then
 				web_f_ip=$(echo "$line" | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | tail -n 1)
 				[ -z "$web_f_ip" ] && web_f_ip=$(echo "$line" | grep -oE '([0-9a-fA-F]{1,4}:){2,7}[0-9a-fA-F]{1,4}' | tail -n 1)
-				[ -n "$web_f_ip" ] && process_login_event "$web_f_ip" "$(echo "$line" | awk '{print $1,$2,$3}')" "web_failed" "$req_path" "${ua:-Browser (Web)}"
+				[ -n "$web_f_ip" ] && process_login_event "$web_f_ip" "$(echo "$line" | awk '{print $1,$2,$3}')" "web_failed" "$req_path" "${ua:-Web Client}"
 			fi
 		fi
 

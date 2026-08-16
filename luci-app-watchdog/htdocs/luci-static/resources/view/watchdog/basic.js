@@ -19,8 +19,12 @@ function fetchStatus() {
     });
 }
 
-function parseUserAgent(ua) {
-    if (!ua || ua === 'Unknown') return 'Unknown Device';
+function parseUserAgent(ua, item) {
+    if (item && item.device_summary && item.device_summary !== '公网IP' && item.device_summary !== '未知') {
+        return item.device_summary;
+    }
+
+    if (!ua || ua === 'Unknown') return '未知终端/设备';
     
     var os = '';
     if (ua.indexOf('Windows NT 10.0') !== -1 || ua.indexOf('Windows NT 11.0') !== -1) os = 'Windows 10/11';
@@ -36,17 +40,17 @@ function parseUserAgent(ua) {
     else if (ua.indexOf('Chrome/') !== -1 && ua.indexOf('Chromium') === -1) browser = 'Google Chrome';
     else if (ua.indexOf('Safari/') !== -1 && ua.indexOf('Chrome') === -1) browser = 'Apple Safari';
     else if (ua.indexOf('Firefox/') !== -1) browser = 'Mozilla Firefox';
-    else if (ua.indexOf('curl/') !== -1) browser = 'cURL CLI';
-    else if (ua.indexOf('python') !== -1 || ua.indexOf('Python') !== -1) browser = 'Python Script';
-    else if (ua.indexOf('SSH') !== -1) browser = 'SSH Terminal';
-    else if (ua.indexOf('LuCI') !== -1 || ua.indexOf('Browser') !== -1) browser = 'Web Browser';
+    else if (ua.indexOf('curl/') !== -1) browser = 'cURL CLI (命令行工具)';
+    else if (ua.indexOf('python') !== -1 || ua.indexOf('Python') !== -1) browser = 'Python 自动化/爆破脚本';
+    else if (ua.indexOf('SSH') !== -1) browser = 'SSH 终端客户端';
+    else if (ua.indexOf('LuCI') !== -1 || ua.indexOf('Browser') !== -1) browser = 'Web 浏览器客户端';
 
     if (browser && os) {
         return browser + ' (' + os + ')';
     } else if (browser) {
         return browser;
     } else if (os) {
-        return 'Web Client (' + os + ')';
+        return 'Web 客户端 (' + os + ')';
     }
 
     return ua.length > 40 ? ua.substring(0, 37) + '...' : ua;
@@ -513,7 +517,8 @@ return view.extend({
                         var item = data[ip];
                         var isLan = (item.net_type || '').indexOf('Private') !== -1;
                         var netBadgeClass = isLan ? 'badge-net lan' : 'badge-net public';
-                        var parsedUA = parseUserAgent(item.user_agent);
+                        var parsedUA = parseUserAgent(item.user_agent, item);
+                        var subInfo = item.mac ? ('MAC: ' + item.mac) : (item.user_agent || 'N/A');
 
                         return E('tr', { class: 'tr' }, [
                             E('td', { class: 'td' }, [
@@ -524,8 +529,8 @@ return view.extend({
                                 E('span', { class: 'geo-text' }, item.location || _('Unknown'))
                             ]),
                             E('td', { class: 'td' }, [
-                                E('div', { style: 'font-weight:600;' }, parsedUA),
-                                E('div', { class: 'ua-text', title: item.user_agent }, item.user_agent || 'N/A')
+                                E('div', { style: 'font-weight:600;color:#111827;' }, parsedUA),
+                                E('div', { class: 'ua-text', title: item.user_agent || subInfo }, subInfo)
                             ]),
                             E('td', { class: 'td' }, [
                                 E('div', { style: 'font-weight:600;color:#3b82f6;' }, item.last_path || '/'),

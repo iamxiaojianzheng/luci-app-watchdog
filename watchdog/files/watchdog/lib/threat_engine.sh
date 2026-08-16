@@ -38,7 +38,17 @@ update_threat_record() {
 		is_banned="true"
 	fi
 
-	# 使用 python / jq / awk 安全更新 JSON 结构
+	local mac="" hostname="" vendor="" dev_summary=""
+	if command -v get_device_mac >/dev/null 2>&1; then
+		mac=$(get_device_mac "$ip")
+		hostname=$(get_device_hostname "$ip" "$mac")
+		vendor=$(get_device_vendor "$mac" "$hostname")
+		dev_summary=$(get_device_fingerprint "$ip" "$ua")
+	else
+		dev_summary="$location"
+	fi
+
+	# 使用 jq 安全更新 JSON 结构
 	if command -v jq >/dev/null 2>&1; then
 		local tmpdb="${THREAT_DB}.tmp"
 		jq --arg ip "$ip" \
@@ -49,6 +59,10 @@ update_threat_record() {
 		   --arg event "$event_type" \
 		   --arg time "$now_str" \
 		   --arg banned "$is_banned" \
+		   --arg mac "$mac" \
+		   --arg host "$hostname" \
+		   --arg vendor "$vendor" \
+		   --arg dev_summary "$dev_summary" \
 		   '.[$ip] = {
 		       ip: $ip,
 		       location: $loc,
@@ -59,7 +73,11 @@ update_threat_record() {
 		       last_seen: $time,
 		       first_seen: (.[$ip].first_seen // $time),
 		       attempts: ((.[$ip].attempts // 0) + (if ($event | contains("failed")) then 1 else 0 end)),
-		       banned: ($banned == "true")
+		       banned: ($banned == "true"),
+		       mac: $mac,
+		       hostname: $host,
+		       vendor: $vendor,
+		       device_summary: $dev_summary
 		   }' "$THREAT_DB" > "$tmpdb" 2>/dev/null && mv "$tmpdb" "$THREAT_DB"
 	fi
 }
