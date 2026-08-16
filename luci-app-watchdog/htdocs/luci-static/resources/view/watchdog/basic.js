@@ -20,19 +20,44 @@ function fetchStatus() {
 }
 
 function parseUserAgent(ua) {
-    if (!ua || ua === 'Unknown') return 'Unknown Client';
-    if (ua.indexOf('Chrome') !== -1) return 'Google Chrome';
-    if (ua.indexOf('Firefox') !== -1) return 'Mozilla Firefox';
-    if (ua.indexOf('Safari') !== -1) return 'Apple Safari';
-    if (ua.indexOf('Edge') !== -1) return 'Microsoft Edge';
-    if (ua.indexOf('curl') !== -1) return 'cURL CLI Tool';
-    if (ua.indexOf('python') !== -1 || ua.indexOf('Python') !== -1) return 'Python Script (Automated)';
-    if (ua.indexOf('SSH') !== -1) return 'SSH Terminal Client';
-    return ua;
+    if (!ua || ua === 'Unknown') return 'Unknown Device';
+    
+    var os = '';
+    if (ua.indexOf('Windows NT 10.0') !== -1 || ua.indexOf('Windows NT 11.0') !== -1) os = 'Windows 10/11';
+    else if (ua.indexOf('Windows') !== -1) os = 'Windows';
+    else if (ua.indexOf('Macintosh') !== -1 || ua.indexOf('Mac OS X') !== -1) os = 'macOS';
+    else if (ua.indexOf('iPhone') !== -1) os = 'iPhone (iOS)';
+    else if (ua.indexOf('iPad') !== -1) os = 'iPad (iPadOS)';
+    else if (ua.indexOf('Android') !== -1) os = 'Android';
+    else if (ua.indexOf('Linux') !== -1) os = 'Linux';
+
+    var browser = '';
+    if (ua.indexOf('Edg/') !== -1 || ua.indexOf('Edge') !== -1) browser = 'Microsoft Edge';
+    else if (ua.indexOf('Chrome/') !== -1 && ua.indexOf('Chromium') === -1) browser = 'Google Chrome';
+    else if (ua.indexOf('Safari/') !== -1 && ua.indexOf('Chrome') === -1) browser = 'Apple Safari';
+    else if (ua.indexOf('Firefox/') !== -1) browser = 'Mozilla Firefox';
+    else if (ua.indexOf('curl/') !== -1) browser = 'cURL CLI';
+    else if (ua.indexOf('python') !== -1 || ua.indexOf('Python') !== -1) browser = 'Python Script';
+    else if (ua.indexOf('SSH') !== -1) browser = 'SSH Terminal';
+    else if (ua.indexOf('LuCI') !== -1 || ua.indexOf('Browser') !== -1) browser = 'Web Browser';
+
+    if (browser && os) {
+        return browser + ' (' + os + ')';
+    } else if (browser) {
+        return browser;
+    } else if (os) {
+        return 'Web Client (' + os + ')';
+    }
+
+    return ua.length > 40 ? ua.substring(0, 37) + '...' : ua;
 }
 
 return view.extend({
     render: function() {
+        if (window.navigator && window.navigator.userAgent) {
+            fs.exec('/usr/libexec/watchdog-call', ['report_ua', window.location.hostname, window.navigator.userAgent]);
+        }
+
         var css = `
             .watchdog-status-card {
                 display: flex;

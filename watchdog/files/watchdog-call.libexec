@@ -114,6 +114,21 @@ case "$1" in
 		echo "{\"status\": \"ok\"}"
 		;;
 
+	"report_ua")
+		ip="$2"
+		ua="$3"
+		if [ -n "$ip" ] && [ -n "$ua" ]; then
+			threat_file="${api_dir}/ip_threat_records.json"
+			if [ -f "$threat_file" ] && command -v jq >/dev/null 2>&1; then
+				tmpfile="${threat_file}.tmp"
+				jq --arg ip "$ip" --arg ua "$ua" \
+				   'if .[$ip] then .[$ip].user_agent = $ua else . end' \
+				   "$threat_file" > "$tmpfile" 2>/dev/null && mv "$tmpfile" "$threat_file"
+			fi
+		fi
+		echo "{\"status\": \"ok\"}"
+		;;
+
 	"child")
 		shift
 		command_name=$1
