@@ -223,12 +223,19 @@ install_local() {
 post_install() {
     info "Configuring and starting Watchdog service..."
     
-    # 还原之前热备份的 IP 黑名单文件（防止包覆盖重置）
+    # 还原之前热备份的 IP 黑名单文件与威胁分析档案
     if [ -f "/tmp/watchdog_ip_blacklist.bak" ] && [ -s "/tmp/watchdog_ip_blacklist.bak" ]; then
         info "Restoring preserved IP blacklist records..."
         mkdir -p /usr/share/watchdog/api
         cp -f "/tmp/watchdog_ip_blacklist.bak" "/usr/share/watchdog/api/ip_blacklist"
         rm -f "/tmp/watchdog_ip_blacklist.bak"
+    fi
+
+    if [ -f "/tmp/watchdog_threat_db.bak" ] && [ -s "/tmp/watchdog_threat_db.bak" ]; then
+        info "Restoring preserved threat analytics records..."
+        mkdir -p /usr/share/watchdog/api
+        cp -f "/tmp/watchdog_threat_db.bak" "/usr/share/watchdog/api/ip_threat_records.json"
+        rm -f "/tmp/watchdog_threat_db.bak"
     fi
 
     /etc/init.d/watchdog stop 2>/dev/null || true
@@ -259,10 +266,15 @@ main() {
     detect_arch
     install_deps
 
-    # 备份现有黑名单，防止 opkg/apk 升级重置
+    # 备份现有黑名单与威胁分析档案，防止 opkg/apk 升级重置
     if [ -f "/usr/share/watchdog/api/ip_blacklist" ] && [ -s "/usr/share/watchdog/api/ip_blacklist" ]; then
         info "Preserving existing IP blacklist records..."
         cp -f "/usr/share/watchdog/api/ip_blacklist" "/tmp/watchdog_ip_blacklist.bak"
+    fi
+
+    if [ -f "/usr/share/watchdog/api/ip_threat_records.json" ] && [ -s "/usr/share/watchdog/api/ip_threat_records.json" ]; then
+        info "Preserving existing threat analytics records..."
+        cp -f "/usr/share/watchdog/api/ip_threat_records.json" "/tmp/watchdog_threat_db.bak"
     fi
 
     install_plugin

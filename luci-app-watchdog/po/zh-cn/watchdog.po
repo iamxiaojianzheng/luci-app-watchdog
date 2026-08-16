@@ -120,7 +120,7 @@ msgid "Web Login Success"
 msgstr "Web 登录成功"
 
 msgid "SSH Login Success"
-msgstr "SSH 登录成功"
+msgstr "SSH 登录Success"
 
 msgid "Web Login Failures"
 msgstr "Web 登录失败"
@@ -177,7 +177,7 @@ msgid "No active blacklisted IP addresses."
 msgstr "当前暂无被封禁的 IP 地址。"
 
 msgid "Permanent / Default"
-msgstr "永久 / 默认"
+msgstr "永久 / Default"
 
 msgid "%dh %dm (%ds)"
 msgstr "%d小时 %d分钟 (%d秒)"

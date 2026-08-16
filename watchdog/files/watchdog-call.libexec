@@ -99,6 +99,21 @@ case "$1" in
 		fi
 		;;
 
+	"get_threat_analytics")
+		threat_file="${api_dir}/ip_threat_records.json"
+		if [ -f "$threat_file" ] && [ -s "$threat_file" ]; then
+			cat "$threat_file" 2>/dev/null
+		else
+			echo "{}"
+		fi
+		;;
+
+	"clear_threat_records")
+		threat_file="${api_dir}/ip_threat_records.json"
+		echo "{}" > "$threat_file" 2>/dev/null
+		echo "{\"status\": \"ok\"}"
+		;;
+
 	"child")
 		shift
 		command_name=$1

@@ -10,7 +10,7 @@ define Package/$(PKG_NAME)
 	SECTION:=utils
 	CATEGORY:=Utilities
 	TITLE:=Routing Security Watchdog for OpenWrt
-	DEPENDS:=+curl +bash
+	DEPENDS:=+curl +bash +jq
 endef
 
 define Package/$(PKG_NAME)/description
@@ -23,6 +23,7 @@ endef
 define Package/$(PKG_NAME)/conffiles
 /etc/config/watchdog
 /usr/share/watchdog/api/ip_blacklist
+/usr/share/watchdog/api/ip_threat_records.json
 endef
 
 define Package/$(PKG_NAME)/install

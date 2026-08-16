@@ -19,6 +19,18 @@ function fetchStatus() {
     });
 }
 
+function parseUserAgent(ua) {
+    if (!ua || ua === 'Unknown') return 'Unknown Client';
+    if (ua.indexOf('Chrome') !== -1) return 'Google Chrome';
+    if (ua.indexOf('Firefox') !== -1) return 'Mozilla Firefox';
+    if (ua.indexOf('Safari') !== -1) return 'Apple Safari';
+    if (ua.indexOf('Edge') !== -1) return 'Microsoft Edge';
+    if (ua.indexOf('curl') !== -1) return 'cURL CLI Tool';
+    if (ua.indexOf('python') !== -1 || ua.indexOf('Python') !== -1) return 'Python Script (Automated)';
+    if (ua.indexOf('SSH') !== -1) return 'SSH Terminal Client';
+    return ua;
+}
+
 return view.extend({
     render: function() {
         var css = `
@@ -103,13 +115,50 @@ return view.extend({
                 color: #111827;
                 font-size: 1.05em;
             }
+            .badge-net {
+                display: inline-block;
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 0.8em;
+                font-weight: 500;
+                margin-left: 6px;
+            }
+            .badge-net.lan { background: #f3f4f6; color: #4b5563; }
+            .badge-net.public { background: #dbeafe; color: #1e40af; }
+            .badge-status-banned {
+                display: inline-block;
+                padding: 2px 8px;
+                background: #fee2e2;
+                color: #991b1b;
+                border-radius: 4px;
+                font-size: 0.82em;
+                font-weight: 600;
+            }
+            .badge-status-active {
+                display: inline-block;
+                padding: 2px 8px;
+                background: #dcfce7;
+                color: #166534;
+                border-radius: 4px;
+                font-size: 0.82em;
+                font-weight: 600;
+            }
+            .ua-text {
+                font-size: 0.88em;
+                color: #4b5563;
+                word-break: break-all;
+            }
+            .geo-text {
+                font-weight: 500;
+                color: #1f2937;
+            }
         `;
 
         var m, s, o;
         m = new form.Map('watchdog', _('Watch Dog'), 
             _('Security watchdog plugin for OpenWrt, monitoring Web & SSH access with real-time firewall defense.'));
 
-        // 顶栏状态面板 Section（使用虚拟 type _status，anonymous 渲染覆写）
+        // 顶栏状态面板 Section
         s = m.section(form.TypedSection, '_status');
         s.anonymous = true;
         s.render = function() {
@@ -144,8 +193,6 @@ return view.extend({
                 ])
             ]);
 
-            var _prevBlacklistCount = -1;
-
             poll.add(function() {
                 return fetchStatus().then(function(res) {
                     var badgeEl = cardContainer.querySelector('#status_badge');
@@ -164,30 +211,17 @@ return view.extend({
                         ]);
                         dom.content(metaEl, _('Service is currently inactive.'));
                     }
-
-                    // 黑名单计数发生变化时，自动刷新文本框内容
-                    var curCount = res.blacklist_count || 0;
-                    if (curCount !== _prevBlacklistCount) {
-                        _prevBlacklistCount = curCount;
-                        return fs.exec_direct('/usr/libexec/watchdog-call', ['get_blacklist'])
-                            .then(function(content) {
-                                // 查找黑名单文本框（LuCI 生成的 id 包含 ip_black_list）
-                                var textarea = document.querySelector('textarea[id$=".ip_black_list"]');
-                                if (textarea && document.activeElement !== textarea) {
-                                    textarea.value = content || '';
-                                }
-                            });
-                    }
                 });
             });
 
             return cardContainer;
         };
 
-        // 基本设置配置 Tab
+        // 基本设置与选项卡定义
         s = m.section(form.NamedSection, 'config', 'watchdog');
         s.tab('basic', _('Basic Settings'));
         s.tab('blacklist', _('Blacklist Management'));
+        s.tab('analytics', _('Threat Analytics'));
         s.addremove = false;
 
         // Basic Tab
@@ -212,7 +246,7 @@ return view.extend({
         o.datatype = 'and(uinteger,min(1))';
         o.description = _('Number of failed login attempts allowed before triggering IP ban.');
 
-        // Blacklist Tab (使用精美表格与一键解封代替传统 Textarea 文本框)
+        // Blacklist Tab
         o = s.taboption('blacklist', form.Flag, 'login_web_black', _('Auto-Ban Failed Login Devices'));
         o.default = '1';
         
@@ -227,7 +261,6 @@ return view.extend({
         o.rawhtml = true;
         o.default = function() {
             var tableBox = E('div', { class: 'watchdog-table-box' }, [
-                // 手动快捷拉黑工具栏
                 E('div', { class: 'watchdog-add-bar' }, [
                     E('input', {
                         type: 'text',
@@ -265,7 +298,6 @@ return view.extend({
                     }, _('Ban IP Manually'))
                 ]),
 
-                // 黑名单数据表格
                 E('table', { class: 'table watchdog-table' }, [
                     E('thead', {}, [
                         E('tr', { class: 'tr' }, [
@@ -341,6 +373,169 @@ return view.extend({
 
             refreshTable();
             return tableBox;
+        };
+
+        // Threat Analytics Tab (可视化威胁分析表格)
+        o = s.taboption('analytics', form.DummyValue, '_analytics_section', _('Threat Intelligence & Access Analytics'));
+        o.rawhtml = true;
+        o.default = function() {
+            var filterKeyword = '';
+
+            var analyticsBox = E('div', { class: 'watchdog-table-box' }, [
+                // 筛选与搜索工具栏
+                E('div', { class: 'watchdog-add-bar' }, [
+                    E('input', {
+                        type: 'text',
+                        id: 'analytics_search',
+                        class: 'cbi-input-text',
+                        placeholder: _('Filter by IP, Geo Location, Device, URI or Status...'),
+                        input: function(ev) {
+                            filterKeyword = (ev.target.value || '').toLowerCase().trim();
+                            renderAnalyticsTable();
+                        }
+                    }),
+                    E('button', {
+                        class: 'cbi-button cbi-button-reset',
+                        click: function(ev) {
+                            ev.preventDefault();
+                            return fs.exec('/usr/libexec/watchdog-call', ['clear_threat_records']).then(function() {
+                                ui.addNotification(null, E('p', _('Threat analytics records cleared.')), 'info');
+                                renderAnalyticsTable();
+                            });
+                        }
+                    }, _('Clear History'))
+                ]),
+
+                // 数据大盘表格
+                E('table', { class: 'table watchdog-table' }, [
+                    E('thead', {}, [
+                        E('tr', { class: 'tr' }, [
+                            E('th', { class: 'th' }, _('Source IP & Net')),
+                            E('th', { class: 'th' }, _('Location & ISP')),
+                            E('th', { class: 'th' }, _('Device / User-Agent')),
+                            E('th', { class: 'th' }, _('Target & Event')),
+                            E('th', { class: 'th' }, _('Attempts & Time')),
+                            E('th', { class: 'th center', style: 'width:120px;' }, _('Status / Action'))
+                        ])
+                    ]),
+                    E('tbody', { id: 'watchdog_analytics_tbody' }, [
+                        E('tr', { class: 'tr' }, [
+                            E('td', { class: 'td center', colspan: 6 }, _('Loading threat intelligence...'))
+                        ])
+                    ])
+                ])
+            ]);
+
+            function renderAnalyticsTable() {
+                return fs.exec_direct('/usr/libexec/watchdog-call', ['get_threat_analytics']).then(function(res) {
+                    var tbody = analyticsBox.querySelector('#watchdog_analytics_tbody');
+                    var data = {};
+                    try {
+                        data = JSON.parse(res || '{}');
+                    } catch(e) {
+                        data = {};
+                    }
+
+                    var keys = Object.keys(data);
+                    if (keys.length === 0) {
+                        dom.content(tbody, [
+                            E('tr', { class: 'tr' }, [
+                                E('td', { class: 'td center', colspan: 6, style: 'color:#9ca3af;padding:24px;' }, _('No access or threat records captured yet.'))
+                            ])
+                        ]);
+                        return;
+                    }
+
+                    // 检索关键词过滤
+                    var filteredKeys = keys.filter(function(ip) {
+                        if (!filterKeyword) return true;
+                        var item = data[ip];
+                        var searchStr = [
+                            item.ip, item.location, item.net_type, 
+                            item.user_agent, item.last_path, item.last_event
+                        ].join(' ').toLowerCase();
+                        return searchStr.indexOf(filterKeyword) !== -1;
+                    });
+
+                    if (filteredKeys.length === 0) {
+                        dom.content(tbody, [
+                            E('tr', { class: 'tr' }, [
+                                E('td', { class: 'td center', colspan: 6, style: 'color:#9ca3af;padding:24px;' }, _('No matching records found for filter.'))
+                            ])
+                        ]);
+                        return;
+                    }
+
+                    var rows = filteredKeys.map(function(ip) {
+                        var item = data[ip];
+                        var isLan = (item.net_type || '').indexOf('Private') !== -1;
+                        var netBadgeClass = isLan ? 'badge-net lan' : 'badge-net public';
+                        var parsedUA = parseUserAgent(item.user_agent);
+
+                        return E('tr', { class: 'tr' }, [
+                            E('td', { class: 'td' }, [
+                                E('span', { class: 'badge-ip' }, item.ip),
+                                E('span', { class: netBadgeClass }, item.net_type || 'IPv4')
+                            ]),
+                            E('td', { class: 'td' }, [
+                                E('span', { class: 'geo-text' }, item.location || _('Unknown'))
+                            ]),
+                            E('td', { class: 'td' }, [
+                                E('div', { style: 'font-weight:600;' }, parsedUA),
+                                E('div', { class: 'ua-text', title: item.user_agent }, item.user_agent || 'N/A')
+                            ]),
+                            E('td', { class: 'td' }, [
+                                E('div', { style: 'font-weight:600;color:#3b82f6;' }, item.last_path || '/'),
+                                E('div', { style: 'font-size:0.85em;color:#6b7280;' }, item.last_event || 'n/a')
+                            ]),
+                            E('td', { class: 'td' }, [
+                                E('div', { style: 'font-weight:600;color:#dc2626;' }, _('%d failed attempts').format(item.attempts || 0)),
+                                E('div', { style: 'font-size:0.85em;color:#6b7280;' }, item.last_seen || '')
+                            ]),
+                            E('td', { class: 'td center' }, [
+                                item.banned ? 
+                                    E('div', {}, [
+                                        E('span', { class: 'badge-status-banned', style: 'margin-bottom:4px;' }, _('BANNED')),
+                                        E('button', {
+                                            class: 'cbi-button cbi-button-remove',
+                                            style: 'margin-top:4px;padding:2px 8px;font-size:0.8em;',
+                                            click: function(ev) {
+                                                ev.preventDefault();
+                                                return fs.exec('/usr/libexec/watchdog-call', ['del_black', item.ip]).then(function() {
+                                                    ui.addNotification(null, E('p', _('IP %s unbanned successfully.').format(item.ip)), 'info');
+                                                    renderAnalyticsTable();
+                                                });
+                                            }
+                                        }, _('Unban'))
+                                    ]) :
+                                    E('div', {}, [
+                                        E('span', { class: 'badge-status-active', style: 'margin-bottom:4px;' }, _('ACTIVE')),
+                                        E('button', {
+                                            class: 'cbi-button cbi-button-action',
+                                            style: 'margin-top:4px;padding:2px 8px;font-size:0.8em;',
+                                            click: function(ev) {
+                                                ev.preventDefault();
+                                                return fs.exec('/usr/libexec/watchdog-call', ['add_black', item.ip, '86400']).then(function() {
+                                                    ui.addNotification(null, E('p', _('IP %s blacklisted successfully.').format(item.ip)), 'info');
+                                                    renderAnalyticsTable();
+                                                });
+                                            }
+                                        }, _('Ban IP'))
+                                    ])
+                            ])
+                        ]);
+                    });
+
+                    dom.content(tbody, rows);
+                });
+            }
+
+            poll.add(function() {
+                return renderAnalyticsTable();
+            });
+
+            renderAnalyticsTable();
+            return analyticsBox;
         };
 
         return m.render();

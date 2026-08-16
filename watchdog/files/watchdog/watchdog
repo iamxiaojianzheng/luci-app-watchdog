@@ -15,7 +15,7 @@ PID_FILE="$TMP_DIR/$APP.pid"
 mkdir -p "$TMP_DIR" "$API_DIR"
 
 # 引入内核子模块
-for mod in utils config firewall attribution blacklist log_monitor; do
+for mod in utils config firewall attribution threat_engine blacklist log_monitor; do
 	if [ -f "$LIB_DIR/$mod.sh" ]; then
 		source "$LIB_DIR/$mod.sh"
 	elif [ -f "./lib/$mod.sh" ]; then

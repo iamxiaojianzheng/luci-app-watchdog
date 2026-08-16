@@ -15,8 +15,14 @@ process_login_event() {
 	local log_time="$2"
 	local event_type="$3"
 	local req_path="${4:-/}"
+	local user_agent="${5:-Unknown}"
 
 	[ -z "$ip" ] && return
+
+	# 异步同步至威胁情报 JSON 数据库
+	if command -v update_threat_record >/dev/null 2>&1; then
+		update_threat_record "$ip" "$event_type" "$req_path" "$user_agent" &
+	fi
 
 	case "$event_type" in
 		"web_failed"|"ssh_failed")
@@ -103,16 +109,19 @@ run_log_monitor() {
 	while IFS= read -r line; do
 		[ -z "$line" ] && continue
 
-		local req_path
+		local req_path ua
 		req_path=$(echo "$line" | sed -n 's/.*on \(\/[^ ]*\).*/\1/p')
 		[ -z "$req_path" ] && req_path="/"
+
+		ua=$(echo "$line" | sed -n 's/.*"\(Mozilla[^"]*\)".*/\1/p')
+		[ -z "$ua" ] && ua=$(echo "$line" | sed -n 's/.*User-Agent:[[:space:]]*\([^[:space:]].*\)/\1/p')
 
 		# Web 登录成功
 		if [ "$WEB_LOGGED" = "true" ]; then
 			if echo "$line" | grep -iqE "accepted login|login succeeded|luci: accepted|cgi: accepted"; then
 				web_ip=$(echo "$line" | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | tail -n 1)
 				[ -z "$web_ip" ] && web_ip=$(echo "$line" | grep -oE '([0-9a-fA-F]{1,4}:){2,7}[0-9a-fA-F]{1,4}' | tail -n 1)
-				[ -n "$web_ip" ] && process_login_event "$web_ip" "$(echo "$line" | awk '{print $1,$2,$3}')" "web_success" "$req_path"
+				[ -n "$web_ip" ] && process_login_event "$web_ip" "$(echo "$line" | awk '{print $1,$2,$3}')" "web_success" "$req_path" "${ua:-Browser (LuCI)}"
 			fi
 		fi
 
@@ -121,7 +130,7 @@ run_log_monitor() {
 			if echo "$line" | grep -iqE "Password auth succeeded|Pubkey auth succeeded|Accepted password|Accepted publickey"; then
 				ssh_ip=$(echo "$line" | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | tail -n 1)
 				[ -z "$ssh_ip" ] && ssh_ip=$(echo "$line" | grep -oE '([0-9a-fA-F]{1,4}:){2,7}[0-9a-fA-F]{1,4}' | tail -n 1)
-				[ -n "$ssh_ip" ] && process_login_event "$ssh_ip" "$(echo "$line" | awk '{print $1,$2,$3}')" "ssh_success" "SSH"
+				[ -n "$ssh_ip" ] && process_login_event "$ssh_ip" "$(echo "$line" | awk '{print $1,$2,$3}')" "ssh_success" "SSH" "SSH Terminal"
 			fi
 		fi
 
@@ -130,7 +139,7 @@ run_log_monitor() {
 			if echo "$line" | grep -iqE "failed login|authentication failure|luci: failed|login failed|cgi: failed"; then
 				web_f_ip=$(echo "$line" | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | tail -n 1)
 				[ -z "$web_f_ip" ] && web_f_ip=$(echo "$line" | grep -oE '([0-9a-fA-F]{1,4}:){2,7}[0-9a-fA-F]{1,4}' | tail -n 1)
-				[ -n "$web_f_ip" ] && process_login_event "$web_f_ip" "$(echo "$line" | awk '{print $1,$2,$3}')" "web_failed" "$req_path"
+				[ -n "$web_f_ip" ] && process_login_event "$web_f_ip" "$(echo "$line" | awk '{print $1,$2,$3}')" "web_failed" "$req_path" "${ua:-Browser (Web)}"
 			fi
 		fi
 
@@ -145,7 +154,7 @@ run_log_monitor() {
 					[ -n "$ssh_f_num" ] && ssh_f_ip=$(logread | grep "dropbear\[${ssh_f_num}\].*Child connection from" | \
 						grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | tail -n 1)
 				fi
-				[ -n "$ssh_f_ip" ] && process_login_event "$ssh_f_ip" "$(echo "$line" | awk '{print $1,$2,$3}')" "ssh_failed" "SSH"
+				[ -n "$ssh_f_ip" ] && process_login_event "$ssh_f_ip" "$(echo "$line" | awk '{print $1,$2,$3}')" "ssh_failed" "SSH" "SSH Client"
 			fi
 		fi
 	done < "$fifo"
