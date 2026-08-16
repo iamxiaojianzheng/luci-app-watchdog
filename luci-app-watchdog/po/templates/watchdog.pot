@@ -1,0 +1,126 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: luci-app-watchdog\n"
+"POT-Creation-Date: 2026-08-16 00:00+0000\n"
+"PO-Revision-Date: 2026-08-16 00:00+0000\n"
+"Last-Translator: https://github.com/iamxiaojianzheng/luci-app-watchdog\n"
+"Language-Team: Chinese (Simplified)\n"
+"Language: zh_Hans\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "Watch Dog"
+msgstr ""
+
+msgid "Security watchdog plugin for OpenWrt, monitoring Web & SSH access with real-time firewall defense."
+msgstr ""
+
+msgid "Checking status..."
+msgstr ""
+
+msgid "Restart Service"
+msgstr ""
+
+msgid "Stop Service"
+msgstr ""
+
+msgid "Watchdog service restarted."
+msgstr ""
+
+msgid "Watchdog service stopped."
+msgstr ""
+
+msgid "RUNNING"
+msgstr ""
+
+msgid "PID: %s | Blacklisted IPs: %s"
+msgstr ""
+
+msgid "STOPPED"
+msgstr ""
+
+msgid "Service is currently inactive."
+msgstr ""
+
+msgid "Basic Settings"
+msgstr ""
+
+msgid "Blacklist Management"
+msgstr ""
+
+msgid "Enable Watchdog"
+msgstr ""
+
+msgid "Check Interval (Seconds)"
+msgstr ""
+
+msgid "Interval for periodic safety checks. Shorter intervals increase responsiveness."
+msgstr ""
+
+msgid "Monitored Login Events"
+msgstr ""
+
+msgid "Web Login Success"
+msgstr ""
+
+msgid "SSH Login Success"
+msgstr ""
+
+msgid "Web Login Failures"
+msgstr ""
+
+msgid "SSH Login Failures"
+msgstr ""
+
+msgid "Failure Threshold"
+msgstr ""
+
+msgid "Number of failed login attempts allowed before triggering IP ban."
+msgstr ""
+
+msgid "Auto-Ban Failed Login Devices"
+msgstr ""
+
+msgid "Ban Duration (Seconds)"
+msgstr ""
+
+msgid "Default ban timeout in seconds (86400s = 24h). Set 0 for permanent ban."
+msgstr ""
+
+msgid "Blacklisted IP Records"
+msgstr ""
+
+msgid "Active firewall blacklist entries (Format: IP timeout SECONDS). Edits take effect immediately."
+msgstr ""
+
+msgid "Search / Filter Logs..."
+msgstr ""
+
+msgid "Auto Scroll"
+msgstr ""
+
+msgid "Clear Logs"
+msgstr ""
+
+msgid "Log cleared successfully."
+msgstr ""
+
+msgid "Download Log"
+msgstr ""
+
+msgid "Loading logs..."
+msgstr ""
+
+msgid "Log is currently empty."
+msgstr ""
+
+msgid "Failed to load log file."
+msgstr ""
+
+msgid "Live log viewer updating every 5 seconds."
+msgstr ""
+
+msgid "Log"
+msgstr ""

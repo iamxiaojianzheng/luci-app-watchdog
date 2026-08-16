@@ -1,0 +1,82 @@
+#!/bin/bash
+#
+# Watchdog Daemon Main Entry Point (Modular Architecture)
+#
+
+APP="watchdog"
+BASE_DIR="/usr/share/$APP"
+LIB_DIR="$BASE_DIR/lib"
+API_DIR="$BASE_DIR/api"
+TMP_DIR="/tmp/$APP"
+LOGFILE="$TMP_DIR/$APP.log"
+LOCK_FILE="$TMP_DIR/$APP.lock"
+PID_FILE="$TMP_DIR/$APP.pid"
+
+mkdir -p "$TMP_DIR" "$API_DIR"
+
+# 引入内核子模块
+for mod in utils config firewall attribution blacklist log_monitor; do
+	if [ -f "$LIB_DIR/$mod.sh" ]; then
+		source "$LIB_DIR/$mod.sh"
+	elif [ -f "./lib/$mod.sh" ]; then
+		source "./lib/$mod.sh"
+	else
+		echo "[ERROR] Missing library module: $mod.sh" >&2
+		exit 1
+	fi
+done
+
+# 优雅退出信号处理（仅清理属于当前 PID 的资源）
+cleanup() {
+	if [ -f "$PID_FILE" ] && [ "$(cat "$PID_FILE" 2>/dev/null)" = "$$" ]; then
+		log "INFO" "Watchdog service shutting down..."
+		stop_log_monitor
+		rm -f "$PID_FILE"
+		LockFile unlock
+	fi
+	exit 0
+}
+
+trap cleanup SIGINT SIGTERM EXIT
+
+main() {
+	read_config
+
+	if [ "$ENABLE" -ne 1 ]; then
+		log "INFO" "Watchdog is disabled in configuration."
+		exit 0
+	fi
+
+	if ! LockFile lock; then
+		local existing_pid=""
+		[ -f "$PID_FILE" ] && existing_pid=$(cat "$PID_FILE" 2>/dev/null)
+		log "WARN" "Watchdog is already running (PID: ${existing_pid:-unknown}). Exiting."
+		exit 0
+	fi
+
+	echo "$$" > "$PID_FILE"
+
+	log "INFO" "Watchdog Service Initialized. Starting Firewall and Event Engine..."
+
+	fw_init_sets
+	sync_blacklist_to_firewall
+
+	# 在后台运行日志监听引擎
+	run_log_monitor
+
+	# 主守护循环
+	while [ "$ENABLE" -eq 1 ]; do
+		deltemp
+		read_config
+
+		# 若日志监听进程挂掉则自动拉起
+		if [ -n "$_LOGREAD_PID" ] && ! kill -0 "$_LOGREAD_PID" 2>/dev/null; then
+			log "WARN" "Log monitor process died. Restarting..."
+			run_log_monitor
+		fi
+
+		sleep "${SLEEPTIME:-60}"
+	done
+}
+
+main "$@"
