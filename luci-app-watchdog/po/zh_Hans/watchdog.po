@@ -1,0 +1,216 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: luci-app-watchdog\n"
+"POT-Creation-Date: 2026-08-16 00:00+0000\n"
+"PO-Revision-Date: 2026-08-16 00:00+0000\n"
+"Last-Translator: https://github.com/iamxiaojianzheng/luci-app-watchdog\n"
+"Language-Team: Chinese (Simplified)\n"
+"Language: zh_Hans\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "Watch Dog"
+msgstr "看门狗"
+
+msgid "Security watchdog plugin for OpenWrt, monitoring Web & SSH access with real-time firewall defense."
+msgstr "适用于 OpenWrt 的安全看门狗插件，提供 Web 与 SSH 登录防爆破及动态防火墙实时守护。"
+
+msgid "Checking status..."
+msgstr "正在检查状态..."
+
+msgid "Restart Service"
+msgstr "重启服务"
+
+msgid "Stop Service"
+msgstr "停止服务"
+
+msgid "Watchdog service restarted."
+msgstr "看门狗服务已重启。"
+
+msgid "Watchdog service stopped."
+msgstr "看门狗服务已停止。"
+
+msgid "RUNNING"
+msgstr "运行中"
+
+msgid "PID: %s | Blacklisted IPs: %s"
+msgstr "进程 PID：%s | 当前封禁 IP 数：%s"
+
+msgid "STOPPED"
+msgstr "未运行"
+
+msgid "Service is currently inactive."
+msgstr "服务当前未运行。"
+
+msgid "Basic Settings"
+msgstr "基本设置"
+
+msgid "Blacklist Management"
+msgstr "黑名单管理"
+
+msgid "Threat Analytics"
+msgstr "非法访问分析"
+
+msgid "Filter by IP, Geo Location, Device, URI or Status..."
+msgstr "输入 IP、地理位置、设备、路径或状态过滤..."
+
+msgid "Clear History"
+msgstr "清空历史记录"
+
+msgid "Threat analytics records cleared."
+msgstr "已成功清空非法访问分析记录。"
+
+msgid "Source IP & Net"
+msgstr "来源 IP 与网络"
+
+msgid "Location & ISP"
+msgstr "地理位置与运营商"
+
+msgid "Device / User-Agent"
+msgstr "客户端 / 浏览器设备"
+
+msgid "Target & Event"
+msgstr "目标路径与事件"
+
+msgid "Attempts & Time"
+msgstr "尝试次数与时间"
+
+msgid "Status / Action"
+msgstr "状态与操作"
+
+msgid "Loading threat intelligence..."
+msgstr "正在加载威胁情报数据..."
+
+msgid "No access or threat records captured yet."
+msgstr "当前尚未捕获到非法访问或威胁记录。"
+
+msgid "No matching records found for filter."
+msgstr "未找到符合过滤条件的分析记录。"
+
+msgid "%d failed attempts"
+msgstr "%d 次失败尝试"
+
+msgid "BANNED"
+msgstr "已封禁"
+
+msgid "ACTIVE"
+msgstr "正常/活动"
+
+msgid "Ban IP"
+msgstr "拉黑 IP"
+
+msgid "Enable Watchdog"
+msgstr "启用看门狗"
+
+msgid "Check Interval (Seconds)"
+msgstr "检测间隔时间（秒）"
+
+msgid "Interval for periodic safety checks. Shorter intervals increase responsiveness."
+msgstr "定期安全检测的时间间隔（秒）。越短的间隔时间响应越快，但会占用更多系统资源。"
+
+msgid "Monitored Login Events"
+msgstr "监控登录事件"
+
+msgid "Web Login Success"
+msgstr "Web 登录成功"
+
+msgid "SSH Login Success"
+msgstr "SSH 登录成功"
+
+msgid "Web Login Failures"
+msgstr "Web 登录失败"
+
+msgid "SSH Login Failures"
+msgstr "SSH 登录失败"
+
+msgid "Failure Threshold"
+msgstr "登录失败触发阈值"
+
+msgid "Number of failed login attempts allowed before triggering IP ban."
+msgstr "允许的登录失败尝试次数，超过后将触发 IP 自动封禁。"
+
+msgid "Auto-Ban Failed Login Devices"
+msgstr "自动封禁非法登录设备"
+
+msgid "Ban Duration (Seconds)"
+msgstr "封禁时长（秒）"
+
+msgid "Default ban timeout in seconds (86400s = 24h). Set 0 for permanent ban."
+msgstr "默认封禁超时时长（秒，86400秒 = 24小时）。设为 0 表示永久拉黑。"
+
+msgid "Active Blacklist Manager"
+msgstr "实时黑名单管理器"
+
+msgid "Enter IP address to ban (e.g. 192.168.1.50)"
+msgstr "输入要拉黑的 IP 地址 (例如 192.168.1.50)"
+
+msgid "Timeout (sec)"
+msgstr "封禁时长 (秒)"
+
+msgid "Please enter a valid IP address."
+msgstr "请输入有效的 IP 地址。"
+
+msgid "IP %s blacklisted successfully."
+msgstr "已成功将 IP %s 加入黑名单。"
+
+msgid "Ban IP Manually"
+msgstr "手动拉黑 IP"
+
+msgid "Blacklisted IP"
+msgstr "已封禁 IP"
+
+msgid "Ban Duration / Expiry"
+msgstr "封禁时长 / 到期时间"
+
+msgid "Action"
+msgstr "操作"
+
+msgid "Loading blacklist items..."
+msgstr "正在加载黑名单列表..."
+
+msgid "No active blacklisted IP addresses."
+msgstr "当前暂无被封禁的 IP 地址。"
+
+msgid "Permanent / Default"
+msgstr "永久 / 默认"
+
+msgid "%dh %dm (%ds)"
+msgstr "%d小时 %d分钟 (%d秒)"
+
+msgid "Unban"
+msgstr "解封"
+
+msgid "IP %s unbanned successfully."
+msgstr "已成功解封 IP %s。"
+
+msgid "Search / Filter Logs..."
+msgstr "搜索 / 过滤日志..."
+
+msgid "Auto Scroll"
+msgstr "自动滚动"
+
+msgid "Clear Logs"
+msgstr "清空日志"
+
+msgid "Log cleared successfully."
+msgstr "日志已成功清空。"
+
+msgid "Download Log"
+msgstr "下载日志"
+
+msgid "Loading logs..."
+msgstr "正在加载日志..."
+
+msgid "Log is currently empty."
+msgstr "当前无日志记录。"
+
+msgid "Failed to load log file."
+msgstr "无法加载日志文件。"
+
+msgid "Live log viewer updating every 5 seconds."
+msgstr "实时日志查看器（每 5 秒自动更新）。"
+
+msgid "Log"
+msgstr "日志"

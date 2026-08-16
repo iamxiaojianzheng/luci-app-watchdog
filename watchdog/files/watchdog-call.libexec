@@ -1,0 +1,142 @@
+#!/bin/sh
+#
+# Watchdog RPCD API Gateway & Helper
+#
+
+logfile="/tmp/watchdog/watchdog.log"
+dir="/tmp/watchdog" && mkdir -p "${dir}"
+api_dir="/usr/share/watchdog/api"
+blacklist_file="${api_dir}/ip_blacklist"
+
+# IP 格式校验（同 blacklist.sh，独立自持避免依赖 bash 函数链）
+_validate_ip() {
+	local ip="$1"
+	[ -z "$ip" ] && return 1
+	echo "$ip" | grep -Eq '^([0-9]{1,3}\.){3}[0-9]{1,3}$' && return 0
+	echo "$ip" | grep -Eq '^[0-9a-fA-F:]{2,39}$' && return 0
+	return 1
+}
+
+case "$1" in
+	"status")
+		pid=$(pgrep -f "/usr/share/watchdog/watchdog" | head -n 1)
+		[ -z "$pid" ] && [ -f "/tmp/watchdog/watchdog.pid" ] && pid=$(cat "/tmp/watchdog/watchdog.pid" 2>/dev/null)
+		pid=$(echo "$pid" | tr -d '\r\n[:space:]')
+		
+		running="false"
+		[ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && running="true"
+		
+		count=0
+		if [ -f "$blacklist_file" ]; then
+			count=$(grep -c -E '^[0-9a-fA-F:.]+' "$blacklist_file" 2>/dev/null)
+			count=$(echo "$count" | tr -d '\r\n[:space:]')
+		fi
+		[ -z "$count" ] && count=0
+		
+		echo "{\"running\": ${running}, \"pid\": \"${pid:-null}\", \"blacklist_count\": ${count}}"
+		;;
+
+	"clear_log")
+		>"${logfile}"
+		echo "{\"status\": \"ok\"}"
+		;;
+
+	"del_black")
+		ip="$2"
+		if ! _validate_ip "$ip"; then
+			echo "{\"status\": \"error\", \"message\": \"invalid IP format\"}"
+			exit 1
+		fi
+		if [ -f "$blacklist_file" ]; then
+			tmpfile="${blacklist_file}.tmp"
+			grep -vF "$ip" "$blacklist_file" > "$tmpfile" 2>/dev/null && mv "$tmpfile" "$blacklist_file"
+			# 实时从 nftables/ipset 中移除
+			if command -v nft >/dev/null && [ -x /sbin/fw4 ]; then
+				nft delete element inet fw4 watchdog_blacklist { "$ip" } 2>/dev/null
+				nft delete element inet fw4 watchdog_blacklistv6 { "$ip" } 2>/dev/null
+			elif command -v ipset >/dev/null; then
+				ipset -! del watchdog_blacklist "$ip" 2>/dev/null
+				ipset -! del watchdog_blacklistv6 "$ip" 2>/dev/null
+			fi
+			logger -t watchdog "API: Removed $ip from blacklist"
+			echo "{\"status\": \"ok\", \"removed\": \"$ip\"}"
+		else
+			echo "{\"status\": \"error\", \"message\": \"blacklist file missing\"}"
+		fi
+		;;
+
+	"add_black")
+		ip="$2"
+		timeout="${3:-86400}"
+		if ! _validate_ip "$ip"; then
+			echo "{\"status\": \"error\", \"message\": \"invalid IP format\"}"
+			exit 1
+		fi
+		# timeout 只允许整数
+		echo "$timeout" | grep -Eq '^[0-9]+$' || timeout=86400
+		mkdir -p "$api_dir"
+		if ! grep -qF "$ip" "$blacklist_file" 2>/dev/null; then
+			echo "$ip timeout $timeout" >> "$blacklist_file"
+		fi
+		if command -v nft >/dev/null && [ -x /sbin/fw4 ]; then
+			nft add element inet fw4 watchdog_blacklist { "$ip" expires ${timeout}s } 2>/dev/null
+			nft add element inet fw4 watchdog_blacklistv6 { "$ip" expires ${timeout}s } 2>/dev/null
+		elif command -v ipset >/dev/null; then
+			# 按 IP 版本分别写入对应集合
+			if echo "$ip" | grep -Eq '^([0-9]{1,3}\.){3}[0-9]{1,3}$'; then
+				ipset -exist add watchdog_blacklist "$ip" timeout "$timeout" 2>/dev/null
+			else
+				ipset -exist add watchdog_blacklistv6 "$ip" timeout "$timeout" 2>/dev/null
+			fi
+		fi
+		logger -t watchdog "API: Manually added $ip to blacklist"
+		echo "{\"status\": \"ok\", \"added\": \"$ip\"}"
+		;;
+
+	"get_blacklist")
+		if [ -f "$blacklist_file" ]; then
+			grep -E '^[0-9a-fA-F:.]+' "$blacklist_file" 2>/dev/null
+		fi
+		;;
+
+	"get_threat_analytics")
+		threat_file="${api_dir}/ip_threat_records.json"
+		if [ -f "$threat_file" ] && [ -s "$threat_file" ]; then
+			cat "$threat_file" 2>/dev/null
+		else
+			echo "{}"
+		fi
+		;;
+
+	"clear_threat_records")
+		threat_file="${api_dir}/ip_threat_records.json"
+		echo "{}" > "$threat_file" 2>/dev/null
+		echo "{\"status\": \"ok\"}"
+		;;
+
+	"report_ua")
+		ip="$2"
+		ua="$3"
+		if [ -n "$ip" ] && [ -n "$ua" ]; then
+			threat_file="${api_dir}/ip_threat_records.json"
+			if [ -f "$threat_file" ] && command -v jq >/dev/null 2>&1; then
+				tmpfile="${threat_file}.tmp"
+				jq --arg ip "$ip" --arg ua "$ua" \
+				   'if .[$ip] then .[$ip].user_agent = $ua else . end' \
+				   "$threat_file" > "$tmpfile" 2>/dev/null && mv "$tmpfile" "$threat_file"
+			fi
+		fi
+		echo "{\"status\": \"ok\"}"
+		;;
+
+	"child")
+		shift
+		command_name=$1
+		shift
+		"$command_name" "$@"
+		;;
+	*)
+		echo "{\"error\": \"unknown command\"}"
+		exit 1
+		;;
+esac
