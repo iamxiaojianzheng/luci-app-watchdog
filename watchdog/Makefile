@@ -22,6 +22,7 @@ endef
 
 define Package/$(PKG_NAME)/conffiles
 /etc/config/watchdog
+/usr/share/watchdog/api/ip_blacklist
 endef
 
 define Package/$(PKG_NAME)/install
