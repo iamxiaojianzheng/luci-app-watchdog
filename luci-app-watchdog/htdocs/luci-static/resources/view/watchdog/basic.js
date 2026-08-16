@@ -177,6 +177,24 @@ return view.extend({
                 font-weight: 500;
                 color: #1f2937;
             }
+            /* 强制消除 LuCI 默认 DummyValue 左侧标题栏挤压 */
+            .cbi-value[id$="._analytics_section"],
+            .cbi-value[id$="._blacklist_section"] {
+                display: block !important;
+                width: 100% !important;
+                padding-left: 0 !important;
+                margin-left: 0 !important;
+            }
+            .cbi-value[id$="._analytics_section"] > .cbi-value-title,
+            .cbi-value[id$="._blacklist_section"] > .cbi-value-title {
+                display: none !important;
+            }
+            .cbi-value[id$="._analytics_section"] > .cbi-value-field,
+            .cbi-value[id$="._blacklist_section"] > .cbi-value-field {
+                width: 100% !important;
+                padding-left: 0 !important;
+                margin-left: 0 !important;
+            }
         `;
 
         var m, s, o;
@@ -282,7 +300,7 @@ return view.extend({
         o.depends('login_web_black', '1');
         o.description = _('Default ban timeout in seconds (86400s = 24h). Set 0 for permanent ban.');
 
-        o = s.taboption('blacklist', form.DummyValue, '_blacklist_section', _('Active Blacklist Manager'));
+        o = s.taboption('blacklist', form.DummyValue, '_blacklist_section', '');
         o.rawhtml = true;
         o.default = function() {
             var tableBox = E('div', { class: 'watchdog-table-box' }, [
@@ -401,7 +419,7 @@ return view.extend({
         };
 
         // Threat Analytics Tab (可视化威胁分析表格)
-        o = s.taboption('analytics', form.DummyValue, '_analytics_section', _('Threat Intelligence & Access Analytics'));
+        o = s.taboption('analytics', form.DummyValue, '_analytics_section', '');
         o.rawhtml = true;
         o.default = function() {
             var filterKeyword = '';

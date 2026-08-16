@@ -53,9 +53,6 @@ msgstr "黑名单管理"
 msgid "Threat Analytics"
 msgstr "非法访问分析"
 
-msgid "Threat Intelligence & Access Analytics"
-msgstr "安全威胁情报与非法访问分析"
-
 msgid "Filter by IP, Geo Location, Device, URI or Status..."
 msgstr "输入 IP、地理位置、设备、路径或状态过滤..."
 
