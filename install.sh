@@ -174,23 +174,23 @@ batch_install_dir() {
         ipk_files=$(find "$target_dir" -type f -name "*.ipk" 2>/dev/null | tr '\n' ' ')
         if [ -n "$ipk_files" ]; then
             info "Batch installing all IPK packages simultaneously..."
-            opkg install --force-reinstall $ipk_files || {
+            opkg install --force-reinstall --force-overwrite $ipk_files || {
                 warn "Simultaneous install failed, retrying in strict dependency order..."
                 
                 # 1. 核心守护包
                 local core_pkg
                 core_pkg=$(find "$target_dir" -type f -name "watchdog_*.ipk" ! -name "luci-*" 2>/dev/null | head -n 1 || echo "")
-                [ -n "$core_pkg" ] && { info " -> Step 1/3: Installing $(basename "$core_pkg")"; opkg install --force-reinstall "$core_pkg" || true; }
+                [ -n "$core_pkg" ] && { info " -> Step 1/3: Installing $(basename "$core_pkg")"; opkg install --force-reinstall --force-overwrite "$core_pkg" || true; }
 
                 # 2. LuCI 主程序界面包
                 local app_pkg
                 app_pkg=$(find "$target_dir" -type f -name "luci-app-watchdog_*.ipk" 2>/dev/null | head -n 1 || echo "")
-                [ -n "$app_pkg" ] && { info " -> Step 2/3: Installing $(basename "$app_pkg")"; opkg install --force-reinstall "$app_pkg" || true; }
+                [ -n "$app_pkg" ] && { info " -> Step 2/3: Installing $(basename "$app_pkg")"; opkg install --force-reinstall --force-overwrite "$app_pkg" || true; }
 
                 # 3. 语言包
                 local i18n_pkg
                 i18n_pkg=$(find "$target_dir" -type f -name "luci-i18n-watchdog-*.ipk" 2>/dev/null | head -n 1 || echo "")
-                [ -n "$i18n_pkg" ] && { info " -> Step 3/3: Installing $(basename "$i18n_pkg")"; opkg install --force-reinstall "$i18n_pkg" || true; }
+                [ -n "$i18n_pkg" ] && { info " -> Step 3/3: Installing $(basename "$i18n_pkg")"; opkg install --force-reinstall --force-overwrite "$i18n_pkg" || true; }
             }
         else
             warn "No .ipk files found in extracted archive."
@@ -200,7 +200,7 @@ batch_install_dir() {
         apk_files=$(find "$target_dir" -type f -name "*.apk" 2>/dev/null | tr '\n' ' ')
         if [ -n "$apk_files" ]; then
             info "Installing discovered APK packages..."
-            apk add --allow-untrusted $apk_files
+            apk add --allow-untrusted --force-overwrite $apk_files 2>/dev/null || apk add --allow-untrusted $apk_files
         else
             warn "No .apk files found in extracted archive."
         fi
@@ -209,7 +209,7 @@ batch_install_dir() {
 
 batch_install_files() {
     if [ "$PKG_CMD" = "opkg" ]; then
-        opkg install --force-reinstall "$@"
+        opkg install --force-reinstall --force-overwrite "$@"
     else
         apk add --allow-untrusted "$@"
     fi
